@@ -14,14 +14,30 @@ VENTANA_ALTO = 720
 pantalla = pygame.display.set_mode((VENTANA_ANCHO, VENTANA_ALTO))
 pygame.display.set_caption("Escenario con moto y cartas")
 
+
 # Fondo de 1280x4320 (scroll vertical)
 fondo = pygame.image.load("assets/escenario/background.png").convert()
 FONDO_ALTO = fondo.get_height()
+
 
 # Moto
 moto_img = pygame.image.load("assets/moto.png").convert_alpha()
 moto_rect = moto_img.get_rect(topleft=(600, FONDO_ALTO - moto_img.get_height() - 50))
 moto_mask = pygame.mask.from_surface(moto_img)
+
+#Emojis
+emoji_alta = pygame.image.load("assets/emoji_alta.png").convert_alpha()
+emoji_alta = pygame.transform.smoothscale(emoji_alta, (80, 80))
+emoji_media = pygame.image.load("assets/emoji_media.png").convert_alpha()
+emoji_media = pygame.transform.smoothscale(emoji_media, (80, 80))
+emoji_baja = pygame.image.load("assets/emoji_baja.png").convert_alpha()
+emoji_baja = pygame.transform.smoothscale(emoji_baja, (80, 80))
+
+#Flecha
+flecha_img = pygame.image.load("assets/flecha_atras.png").convert_alpha()
+flecha_img = pygame.transform.scale(flecha_img, (40, 40))  # tamaño real deseado
+flecha_rect = flecha_img.get_rect(topleft=(5, 5))  # posición arriba a la izquierda
+
 
 # Velocidad
 velocidad = 10
@@ -54,7 +70,7 @@ for ruta, pos in [
 # =========================
 # LÓGICA DE CARTAS
 # =========================
-fuente = pygame.font.SysFont("georgia", 26, bold=True)
+fuente = pygame.font.SysFont("georgia", 32, bold=True)
 
 fondo_carta = pygame.image.load("assets/escenario/base_carta.png").convert_alpha()
 fondo_carta_rect = fondo_carta.get_rect(center=(VENTANA_ANCHO // 2, VENTANA_ALTO // 2))
@@ -62,31 +78,39 @@ fondo_carta_rect = fondo_carta.get_rect(center=(VENTANA_ANCHO // 2, VENTANA_ALTO
 btn_aceptar = pygame.image.load("assets/escenario/1.png").convert_alpha()
 btn_no = pygame.image.load("assets/escenario/2.png").convert_alpha()
 
-btn_aceptar_zoom = pygame.transform.scale_by(btn_aceptar, 1.1)
-btn_no_zoom = pygame.transform.scale_by(btn_no, 1.1)
+btn_aceptar_zoom = pygame.transform.scale_by(btn_aceptar, 1.3)
+btn_no_zoom = pygame.transform.scale_by(btn_no, 1.3)
+0
+btn_aceptar_rect = btn_aceptar.get_rect(center=(VENTANA_ANCHO // 2 - 90, fondo_carta_rect.bottom - 200))
+btn_no_rect = btn_no.get_rect(center=(VENTANA_ANCHO // 2 + 90, fondo_carta_rect.bottom - 200))
 
-btn_aceptar_rect = btn_aceptar.get_rect(center=(VENTANA_ANCHO // 2 - 150, fondo_carta_rect.bottom - 60))
-btn_no_rect = btn_no.get_rect(center=(VENTANA_ANCHO // 2 + 150, fondo_carta_rect.bottom - 60))
-
-textos_cartas = [
-    "Una familia necesita arroz y agua urgentemente.",
-    "Un grupo de ancianos clama por ayuda alimentaria.",
-    "Un soldado vigila, pero no ha comido en días.",
-    "Un agricultor pide fertilizante y una ración.",
-    "Un enfermo necesita comida blanda y medicina."
+eventos_cartas = [
+    {
+        "pos": (570, 350),
+        "mensaje": "Un agricultor pide fertilizante y una ración."
+    },
+    {
+        "pos": (680, 1200),
+        "mensaje": "Un grupo de ancianos clama por ayuda alimentaria."
+    },
+    {
+        "pos": (550, 1800),
+        "mensaje": "Un enfermo necesita comida blanda y medicina."
+    },
+    {
+        "pos": (850, 2500),
+        "mensaje": "Una familia necesita arroz y agua urgentemente."
+    },
+    {
+        "pos": (600, 3400),
+        "mensaje": "Un soldado vigila, pero no ha comido en días."
+    }
 ]
-
-puntos_cartas = [
-    (570, 350),
-    (680, 1200),
-    (550, 1800),
-    (900, 2500),
-    (600, 3400), # abajo
-]
-
+mostrar_bienvenida = True
 mostrar_carta = False
 texto_actual = ""
 puntos = 0
+estabilidad = 100
 boton_presionado = False
 puntos_usados = []
 punto_actual = None
@@ -116,23 +140,31 @@ def renderizar_texto_multilinea(texto, fuente, color, ancho_maximo, margen_x):
     return superficies
 
 def dibujar_carta():
-    pantalla.blit(fondo_carta, fondo_carta_rect)
+    # Dimensiones de la caja estilo carta
+    ancho_carta = 550
+    alto_carta = 300
+    x_carta = (VENTANA_ANCHO - ancho_carta) // 2
+    y_carta = (VENTANA_ALTO - alto_carta) // 2
 
-    # Texto centrado con margen y salto de línea
-    margen = 40
-    lineas_renderizadas = renderizar_texto_multilinea(
-        texto_actual, fuente, (0, 0, 0), fondo_carta_rect.width, margen
-    )
-    alto_total = sum([l.get_height() for l in lineas_renderizadas]) + (len(lineas_renderizadas) - 1) * 5
-    y_texto = fondo_carta_rect.centery - alto_total // 2
+    # Fondo oscuro translúcido
+    overlay = pygame.Surface((ancho_carta, alto_carta), pygame.SRCALPHA)
+    overlay.fill((0, 0, 0, 200))  # negro con transparencia
+    pantalla.blit(overlay, (x_carta, y_carta))
 
-    for linea in lineas_renderizadas:
-        texto_rect = linea.get_rect(center=(fondo_carta_rect.centerx, y_texto))
-        pantalla.blit(linea, texto_rect)
-        y_texto += linea.get_height() + 5
+    # Texto centrado
+    fuente_titulo = pygame.font.SysFont("georgia", 30, bold=True)
+    lineas = renderizar_texto_multilinea(texto_actual, fuente_titulo, (255, 255, 255), ancho_carta - 20, 20)
+    alto_total = sum([linea.get_height() for linea in lineas]) + (len(lineas) - 1) * 6
+    y_texto = y_carta + 60
 
-    # Botones con hover
+    for linea in lineas:
+        rect = linea.get_rect(center=(VENTANA_ANCHO // 2, y_texto))
+        pantalla.blit(linea, rect)
+        y_texto += linea.get_height() + 6
+
+    # Botones (manteniendo sus rects actuales)
     mouse_pos = pygame.mouse.get_pos()
+
     if btn_aceptar_rect.collidepoint(mouse_pos):
         pantalla.blit(btn_aceptar_zoom, btn_aceptar_zoom.get_rect(center=btn_aceptar_rect.center))
     else:
@@ -149,16 +181,64 @@ def dibujar_carta():
 clock = pygame.time.Clock()
 tiempo = 0
 
+def mostrar_menu():
+    background_menu = pygame.image.load("assets/presentacion1.png").convert()
+    boton_jugar = pygame.image.load("assets/boton_jugar.png").convert_alpha()
+    boton_jugar = pygame.transform.smoothscale(boton_jugar, (190, 80))
+    boton_hover = pygame.transform.smoothscale(boton_jugar, (210, 90))
+    boton_rect = boton_jugar.get_rect(center=(VENTANA_ANCHO - 150, VENTANA_ALTO - 60))
+    titulo_img = pygame.image.load("assets/titulo.png").convert_alpha()
+    titulo_img = pygame.transform.smoothscale(titulo_img, (750, 445))
+    titulo_rect = titulo_img.get_rect(center=(VENTANA_ANCHO // 2 + 50, 140))
+
+    pygame.mixer.music.load("assets/musica_menu.mp3")
+    pygame.mixer.music.set_volume(0.5)
+    pygame.mixer.music.play(-1, start=5.0)
+
+    en_menu = True
+    while en_menu:
+        pantalla.blit(background_menu, (0, 0))
+        pantalla.blit(titulo_img, titulo_rect)
+
+        mouse_pos = pygame.mouse.get_pos()
+        if boton_rect.collidepoint(mouse_pos):
+            boton_hover_rect = boton_hover.get_rect(center=boton_rect.center)
+            pantalla.blit(boton_hover, boton_hover_rect.topleft)  
+        else:
+            pantalla.blit(boton_jugar, boton_rect)
+
+        for event in pygame.event.get():
+            
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                sys.exit()
+            elif event.type == pygame.MOUSEBUTTONDOWN:
+                if boton_rect.collidepoint(event.pos):
+                    pygame.mixer.music.stop()
+                    pygame.mixer.music.play(-1, start=31.0)
+                    en_menu = False
+
+        pygame.display.flip()
+
+# Mostrar el menú antes de iniciar el juego
+mostrar_menu()
+
 while True:
     for event in pygame.event.get():
+
         if event.type == pygame.QUIT:
             pygame.quit()
             sys.exit()
+            
+        elif event.type == pygame.MOUSEBUTTONDOWN:
+            if flecha_rect.collidepoint(event.pos):
+                mostrar_menu()
+                break  # salir del juego y volver al menú
 
         # Clic en botones (con bloqueo tras primer clic)
         if mostrar_carta and not boton_presionado and event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
             if btn_aceptar_rect.collidepoint(event.pos):
-                puntos += 100
+                puntos = min(puntos + 100,500)
                 mostrar_carta = False
                 boton_presionado = True
                 if punto_actual and punto_actual not in puntos_usados:
@@ -166,7 +246,8 @@ while True:
                 punto_actual = None
 
             elif btn_no_rect.collidepoint(event.pos):
-                puntos -= 100
+                puntos = max(puntos - 20, 0)
+                estabilidad = max(estabilidad - 5, 0)
                 mostrar_carta = False
                 boton_presionado = True
                 if punto_actual and punto_actual not in puntos_usados:
@@ -201,13 +282,14 @@ while True:
             moto_rect = nueva_pos
 
         # Verificar si la moto está cerca de un punto NO USADO
-        for punto in puntos_cartas:
+        for evento in eventos_cartas:
+            punto = evento["pos"]
             if punto in puntos_usados:
                 continue
 
             distancia = pygame.Vector2(moto_rect.center).distance_to(punto)
             if distancia < 50:
-                texto_actual = random.choice(textos_cartas)
+                texto_actual = evento["mensaje"]
                 mostrar_carta = True
                 boton_presionado = False
                 punto_actual = punto
@@ -217,12 +299,19 @@ while True:
     scroll_y = max(0, min(FONDO_ALTO - VENTANA_ALTO, moto_rect.centery - VENTANA_ALTO // 2))
 
     # Dibujar fondo
+    # Scroll centrado en la moto
+    scroll_y = max(0, min(FONDO_ALTO - VENTANA_ALTO, moto_rect.centery - VENTANA_ALTO // 2))
+
+    # Dibujar fondo1
     pantalla.blit(fondo, (0, -scroll_y))
+
+    #Personajes
     for obj_img, obj_rect, _ in objetos:
         pantalla.blit(obj_img, (obj_rect.x, obj_rect.y - scroll_y))
 
     # Dibujar puntos flotantes
-    for punto in puntos_cartas:
+    for evento in eventos_cartas:
+        punto = evento["pos"]
         if punto in puntos_usados:
             continue  # no mostrar los ya usados
         flotacion = math.sin(tiempo + punto[1] * 0.01) * 5
@@ -233,12 +322,44 @@ while True:
     pantalla.blit(moto_img, (moto_rect.x, moto_rect.y - scroll_y))
 
     # Mostrar puntos
-    texto_puntos = fuente.render(f"Puntos: {puntos}", True, (0, 0, 0))
-    pantalla.blit(texto_puntos, (20, 20))
+    texto_puntos = fuente.render(f"Puntos: {puntos}", True, (255, 255, 255))
+    pantalla.blit(texto_puntos, (10, 42))
+
+    # Suponiendo que 'estabilidad' es un número entre 0 y 100
+    if estabilidad > 70:
+        emoji_actual = emoji_alta
+    elif estabilidad > 30:
+        emoji_actual = emoji_media
+    else:
+        emoji_actual = emoji_baja
+
+    # Mostramos el emoji en pantalla
+    pantalla.blit(emoji_actual, (VENTANA_ANCHO - 200, 20))  # Ajustá posición
+    
+    # Mostrar estabilidad
+    texto_estabilidad = fuente.render(f"{estabilidad} %", True, (255, 255, 255))
+    pantalla.blit(texto_estabilidad, (1160, 35))
 
     # Mostrar carta si está activa
     if mostrar_carta:
         dibujar_carta()
+    else:
+        # Verificar final del juego
+        if len(puntos_usados) == len(eventos_cartas) and not mostrar_carta:
+            if puntos >= 500 and estabilidad >= 70:
+                print("¡GANASTE!")
+            else:
+                print("Perdiste. No lograste mantener la estabilidad o los puntos.")
+            pygame.time.wait(3000)
+            pygame.quit()
+            sys.exit()
+    mouse_pos = pygame.mouse.get_pos()
+
+    if flecha_rect.collidepoint(mouse_pos):
+        flecha_zoom = pygame.transform.scale(flecha_img, (48, 48))  # aplica zoom
+        pantalla.blit(flecha_zoom, (flecha_rect.x - 4, flecha_rect.y - 4))  # ajusta para que no se desplace raro
+    else:
+        pantalla.blit(flecha_img, flecha_rect)
 
     pygame.display.flip()
     tiempo += 0.05
