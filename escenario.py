@@ -2,6 +2,8 @@ import pygame
 import sys
 import random
 import math
+from npc_rata import Rata
+from resultado import mostrar_resultado
 
 # =========================
 # INICIALIZACIÓN
@@ -18,6 +20,14 @@ pygame.display.set_caption("Escenario con moto y cartas")
 # Fondo de 1280x4320 (scroll vertical)
 fondo = pygame.image.load("assets/escenario/background.png").convert()
 FONDO_ALTO = fondo.get_height()
+
+# Ratas
+CANTIDAD_RATAS = 20  # ← Podés cambiarlo
+ratas = []
+for _ in range(CANTIDAD_RATAS):
+    x = random.randint(100, VENTANA_ANCHO - 100)
+    y = random.randint(500, FONDO_ALTO - 500)
+    ratas.append(Rata(x, y))
 
 
 # Moto
@@ -54,13 +64,28 @@ pos_enfermos = (-100, 1500)
 pos_familia = (VENTANA_ANCHO - 400, 2000)
 pos_soldado = (0, 3000)
 
+# Parte de abajo del escenario:
+pos_agricultores_2 = (0, 4100)
+pos_ancianos_2 = (VENTANA_ANCHO - 700, 4800)
+pos_enfermos_2 = (-100, 5500)
+pos_familia_2 = (VENTANA_ANCHO - 400, 6000)
+pos_soldado_2 = (0, 7000)
+
+
 objetos = []
 for ruta, pos in [
     ("assets/escenario/agricultores.png", pos_agricultores),
     ("assets/escenario/ancianos.png", pos_ancianos),
     ("assets/escenario/enfermos.png", pos_enfermos),
     ("assets/escenario/familia.png", pos_familia),
-    ("assets/escenario/soldado.png", pos_soldado)
+    ("assets/escenario/soldado.png", pos_soldado),
+
+    # Parte inferior del mapa
+    ("assets/escenario/agricultores.png", pos_agricultores_2),
+    ("assets/escenario/ancianos.png", pos_ancianos_2),
+    ("assets/escenario/enfermos.png", pos_enfermos_2),
+    ("assets/escenario/familia.png", pos_familia_2),
+    ("assets/escenario/soldado.png", pos_soldado_2)
 ]:
     img = pygame.image.load(ruta).convert_alpha()
     rect = img.get_rect(topleft=pos)
@@ -104,7 +129,14 @@ eventos_cartas = [
     {
         "pos": (600, 3400),
         "mensaje": "Un soldado vigila, pero no ha comido en días."
-    }
+    },
+
+    # Parte inferior (duplicado)
+    {"pos": (570, 4350), "mensaje": "Otro agricultor llegó tras caminar horas pidiendo riego y pan."},
+    {"pos": (680, 5200), "mensaje": "Ancianos recién llegados piden ayuda desesperadamente."},
+    {"pos": (550, 5800), "mensaje": "Una mujer enferma suplica por algo caliente para comer."},
+    {"pos": (850, 6500), "mensaje": "Otra familia desplazada busca apoyo con alimentos."},
+    {"pos": (600, 7400), "mensaje": "Un soldado herido implora ayuda mientras patrulla."}
 ]
 mostrar_bienvenida = True
 mostrar_carta = False
@@ -115,6 +147,13 @@ boton_presionado = False
 puntos_usados = []
 punto_actual = None
 
+
+# Estados de los grupos (todos comienzan vivos)
+estado_familias = "vivo"
+estado_soldados = "vivo"
+estado_agricultores = "vivo"
+estado_ancianos = "vivo"
+estado_enfermos = "vivo"
 # =========================
 # FUNCIONES
 # =========================
@@ -238,7 +277,10 @@ while True:
         # Clic en botones (con bloqueo tras primer clic)
         if mostrar_carta and not boton_presionado and event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
             if btn_aceptar_rect.collidepoint(event.pos):
-                puntos = min(puntos + 100,500)
+                puntos = min(puntos + 100, 500)
+
+                # Ya no se otorgan bonus por grupo
+
                 mostrar_carta = False
                 boton_presionado = True
                 if punto_actual and punto_actual not in puntos_usados:
@@ -246,8 +288,23 @@ while True:
                 punto_actual = None
 
             elif btn_no_rect.collidepoint(event.pos):
+                # Penalización fija para todos los grupos
                 puntos = max(puntos - 20, 0)
                 estabilidad = max(estabilidad - 5, 0)
+
+                # Marcar como muerto el grupo correspondiente
+                if "familia" in texto_actual.lower():
+                    estado_familias = "muerto"
+                if "soldado" in texto_actual.lower():
+                    estado_soldados = "muerto"
+                if "enfermo" in texto_actual.lower():
+                    estado_enfermos = "muerto"
+                if "anciano" in texto_actual.lower():
+                    estado_ancianos = "muerto"
+                if "agricultor" in texto_actual.lower():
+                    estado_agricultores = "muerto"
+
+                # Cerrar carta
                 mostrar_carta = False
                 boton_presionado = True
                 if punto_actual and punto_actual not in puntos_usados:
@@ -280,6 +337,14 @@ while True:
 
         if not colision:
             moto_rect = nueva_pos
+
+        # Verificar colisión con ratas
+        for rata in ratas:
+            if not rata.ya_colisiono:
+                offset = (moto_rect.x - rata.rect.x, moto_rect.y - rata.rect.y)
+                if rata.mask.overlap(moto_mask, offset):
+                    rata.ya_colisiono = True
+                    estabilidad = max(0, estabilidad - 15)
 
         # Verificar si la moto está cerca de un punto NO USADO
         for evento in eventos_cartas:
@@ -321,6 +386,13 @@ while True:
     # Dibujar moto
     pantalla.blit(moto_img, (moto_rect.x, moto_rect.y - scroll_y))
 
+
+    # Dibujar ratas
+    for rata in ratas:
+        rata.actualizar(tiempo)
+        rata.dibujar(pantalla, scroll_y)
+
+
     # Mostrar puntos
     texto_puntos = fuente.render(f"Puntos: {puntos}", True, (255, 255, 255))
     pantalla.blit(texto_puntos, (10, 42))
@@ -340,19 +412,34 @@ while True:
     texto_estabilidad = fuente.render(f"{estabilidad} %", True, (255, 255, 255))
     pantalla.blit(texto_estabilidad, (1160, 35))
 
+    # Derrota inmediata si estabilidad <= 70
+    if estabilidad <= 70:
+        grupos_estado = {
+            "familias": estado_familias,
+            "soldados": estado_soldados,
+            "agricultores": estado_agricultores,
+            "ancianos": estado_ancianos,
+            "enfermos": estado_enfermos
+        }
+        mostrar_resultado(pantalla, puntos, estabilidad, grupos_estado)
+
+
+
     # Mostrar carta si está activa
     if mostrar_carta:
         dibujar_carta()
     else:
         # Verificar final del juego
         if len(puntos_usados) == len(eventos_cartas) and not mostrar_carta:
-            if puntos >= 500 and estabilidad >= 70:
-                print("¡GANASTE!")
-            else:
-                print("Perdiste. No lograste mantener la estabilidad o los puntos.")
-            pygame.time.wait(3000)
-            pygame.quit()
-            sys.exit()
+            grupos_estado = {
+                "familias": estado_familias,
+                "soldados": estado_soldados,
+                "agricultores": estado_agricultores,
+                "ancianos": estado_ancianos,
+                "enfermos": estado_enfermos
+            }
+
+            mostrar_resultado(pantalla, puntos, estabilidad, grupos_estado)
     mouse_pos = pygame.mouse.get_pos()
 
     if flecha_rect.collidepoint(mouse_pos):
