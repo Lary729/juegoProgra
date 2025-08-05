@@ -19,11 +19,11 @@ def mostrar_resultado(pantalla, puntos, estabilidad, grupos_estado):
     boton_rect = boton_salir.get_rect(center=(VENTANA_ANCHO // 2, VENTANA_ALTO - 60))
 
     # Fuente para estadísticas
-    fuente = pygame.font.SysFont("georgia", 42, bold=True)
+    fuente = pygame.font.SysFont("georgia", 28, bold=True)
 
     # Determinar condiciones
     grupos_vivos = sum(1 for estado in grupos_estado.values() if estado == "vivo")
-    soldados_rebeldes = grupos_estado.get("soldados") == "muerto"
+    soldados_rebeldes = grupos_estado.get("soldados_1") == "muerto" or grupos_estado.get("soldados_2") == "muerto"
     derrota = (grupos_vivos <= 2 or estabilidad <= 70 or soldados_rebeldes)
     victoria = not derrota and estabilidad >= 71
 
@@ -40,12 +40,9 @@ def mostrar_resultado(pantalla, puntos, estabilidad, grupos_estado):
                     sys.exit()
 
         # Fondo según resultado
-        if victoria:
-            pantalla.blit(fondo_ganar, (0, 0))
-        else:
-            pantalla.blit(fondo_perder, (0, 0))
+        pantalla.blit(fondo_ganar if victoria else fondo_perder, (0, 0))
 
-        # Efecto hover en botón
+        # Hover en botón
         mouse_pos = pygame.mouse.get_pos()
         if boton_rect.collidepoint(mouse_pos):
             zoom_rect = boton_salir_zoom.get_rect(center=boton_rect.center)
@@ -53,7 +50,7 @@ def mostrar_resultado(pantalla, puntos, estabilidad, grupos_estado):
         else:
             pantalla.blit(boton_salir, boton_rect.topleft)
 
-        # Dibujar texto con borde
+        # Función para dibujar texto con borde
         def dibujar_texto_bordeado(texto, x, y):
             texto_blanco = fuente.render(texto, True, (255, 255, 255))
             texto_negro = fuente.render(texto, True, (0, 0, 0))
@@ -62,22 +59,32 @@ def mostrar_resultado(pantalla, puntos, estabilidad, grupos_estado):
                     pantalla.blit(texto_negro, (x + dx, y + dy))
             pantalla.blit(texto_blanco, (x, y))
 
-        # Coordenadas para columnas y espaciado
-        columna_izquierda_x = 80
-        columna_derecha_x = 700
-        y_base = 300
-        espacio_linea = 60
+        # Estadísticas generales (columna izquierda)
+        y_base_info = 260
+        espacio_linea_info = 40
+        dibujar_texto_bordeado(f"Puntos: {puntos}", 60, y_base_info)
+        dibujar_texto_bordeado(f"Estabilidad: {estabilidad}%", 60, y_base_info + espacio_linea_info)
+        dibujar_texto_bordeado(f"Grupos sobrevivientes: {grupos_vivos}", 60, y_base_info + 2 * espacio_linea_info)
 
-        # Columna izquierda: estadísticas generales
-        dibujar_texto_bordeado(f"Puntos: {puntos}", columna_izquierda_x, y_base)
-        dibujar_texto_bordeado(f"Estabilidad: {estabilidad}%", columna_izquierda_x, y_base + espacio_linea)
-        dibujar_texto_bordeado(f"Grupos sobrevivientes: {grupos_vivos}", columna_izquierda_x, y_base + 2 * espacio_linea)
+        # Mostrar los estados en DOS columnas organizadas
+        grupos_col1 = ["familias_1", "soldados_1", "agricultores_1", "ancianos_1", "enfermos_1"]
+        grupos_col2 = ["familias_2", "soldados_2", "agricultores_2", "ancianos_2", "enfermos_2"]
 
-        # Columna derecha: estado de cada grupo
-        grupos = list(grupos_estado.items())
-        for i, (grupo, estado) in enumerate(grupos):
-            texto_estado = f"{grupo.capitalize()}: {'✅ Vivo' if estado == 'vivo' else '☠️ Muerto'}"
-            y = y_base + i * espacio_linea
-            dibujar_texto_bordeado(texto_estado, columna_derecha_x, y)
+        columna_1_x = 500
+        columna_2_x = 850
+        y_base_grupos = 260
+        espacio_linea_grupos = 45
+
+        for i, grupo in enumerate(grupos_col1):
+            estado = grupos_estado.get(grupo, "desconocido")
+            nombre = grupo.replace("_", " ").capitalize()
+            estado_txt = "✅ Vivo" if estado == "vivo" else "☠️ Muerto"
+            dibujar_texto_bordeado(f"{nombre}: {estado_txt}", columna_1_x, y_base_grupos + i * espacio_linea_grupos)
+
+        for i, grupo in enumerate(grupos_col2):
+            estado = grupos_estado.get(grupo, "desconocido")
+            nombre = grupo.replace("_", " ").capitalize()
+            estado_txt = "✅ Vivo" if estado == "vivo" else "☠️ Muerto"
+            dibujar_texto_bordeado(f"{nombre}: {estado_txt}", columna_2_x, y_base_grupos + i * espacio_linea_grupos)
 
         pygame.display.flip()

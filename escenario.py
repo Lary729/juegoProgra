@@ -4,6 +4,7 @@ import random
 import math
 from npc_rata import Rata
 from resultado import mostrar_resultado
+from npc_ladron import Ladron, BalaLadron
 
 # =========================
 # INICIALIZACIÓN
@@ -22,18 +23,29 @@ fondo = pygame.image.load("assets/escenario/background.png").convert()
 FONDO_ALTO = fondo.get_height()
 
 # Ratas
-CANTIDAD_RATAS = 20  # ← Podés cambiarlo
+CANTIDAD_RATAS = 10  # ← Podés cambiarlo
 ratas = []
 for _ in range(CANTIDAD_RATAS):
     x = random.randint(100, VENTANA_ANCHO - 100)
     y = random.randint(500, FONDO_ALTO - 500)
     ratas.append(Rata(x, y))
 
-
 # Moto
 moto_img = pygame.image.load("assets/moto.png").convert_alpha()
 moto_rect = moto_img.get_rect(topleft=(600, FONDO_ALTO - moto_img.get_height() - 50))
 moto_mask = pygame.mask.from_surface(moto_img)
+
+# Ladrones 
+ladrones = pygame.sprite.Group()
+balas_ladron = pygame.sprite.Group()
+
+# Crear 4 ladrones en posiciones aleatorias del fondo:
+for _ in range(4):
+    x = random.randint(100, 1180)
+    y = random.randint(800, 7000)
+    ladron = Ladron(x, y, objetivo=lambda: moto_rect)  # función lambda
+    ladron.balas = balas_ladron
+    ladrones.add(ladron)
 
 #Emojis
 emoji_alta = pygame.image.load("assets/emoji_alta.png").convert_alpha()
@@ -148,12 +160,17 @@ puntos_usados = []
 punto_actual = None
 
 
-# Estados de los grupos (todos comienzan vivos)
-estado_familias = "vivo"
-estado_soldados = "vivo"
-estado_agricultores = "vivo"
-estado_ancianos = "vivo"
-estado_enfermos = "vivo"
+# Estados de los grupos (10 grupos: 2 por cada tipo)
+estado_familias_1 = "vivo"
+estado_familias_2 = "vivo"
+estado_soldados_1 = "vivo"
+estado_soldados_2 = "vivo"
+estado_agricultores_1 = "vivo"
+estado_agricultores_2 = "vivo"
+estado_ancianos_1 = "vivo"
+estado_ancianos_2 = "vivo"
+estado_enfermos_1 = "vivo"
+estado_enfermos_2 = "vivo"
 # =========================
 # FUNCIONES
 # =========================
@@ -293,16 +310,36 @@ while True:
                 estabilidad = max(estabilidad - 5, 0)
 
                 # Marcar como muerto el grupo correspondiente
-                if "familia" in texto_actual.lower():
-                    estado_familias = "muerto"
-                if "soldado" in texto_actual.lower():
-                    estado_soldados = "muerto"
-                if "enfermo" in texto_actual.lower():
-                    estado_enfermos = "muerto"
-                if "anciano" in texto_actual.lower():
-                    estado_ancianos = "muerto"
-                if "agricultor" in texto_actual.lower():
-                    estado_agricultores = "muerto"
+                # Marcar como muerto el grupo correspondiente (usa 2 vidas por tipo)
+            if "familia" in texto_actual.lower():
+                if estado_familias_1 == "vivo":
+                    estado_familias_1 = "muerto"
+                else:
+                    estado_familias_2 = "muerto"
+
+            if "soldado" in texto_actual.lower():
+                if estado_soldados_1 == "vivo":
+                    estado_soldados_1 = "muerto"
+                else:
+                    estado_soldados_2 = "muerto"
+
+            if "enfermo" in texto_actual.lower():
+                if estado_enfermos_1 == "vivo":
+                    estado_enfermos_1 = "muerto"
+                else:
+                    estado_enfermos_2 = "muerto"
+
+            if "anciano" in texto_actual.lower():
+                if estado_ancianos_1 == "vivo":
+                    estado_ancianos_1 = "muerto"
+                else:
+                    estado_ancianos_2 = "muerto"
+
+            if "agricultor" in texto_actual.lower():
+                if estado_agricultores_1 == "vivo":
+                    estado_agricultores_1 = "muerto"
+                else:
+                    estado_agricultores_2 = "muerto"
 
                 # Cerrar carta
                 mostrar_carta = False
@@ -386,6 +423,21 @@ while True:
     # Dibujar moto
     pantalla.blit(moto_img, (moto_rect.x, moto_rect.y - scroll_y))
 
+    # En el bucle principal:
+    ladrones.update()
+    balas_ladron.update()
+    for ladron in ladrones:
+        pantalla.blit(ladron.image, (ladron.rect.x, ladron.rect.y - scroll_y))
+    for bala in balas_ladron:
+        pantalla.blit(bala.image, (bala.rect.x, bala.rect.y - scroll_y))
+
+    # Detección de colisión con jugador
+    for bala in list(balas_ladron):  # copia segura
+        bala_rect_scroll = bala.rect.copy()
+        bala_rect_scroll.y -= scroll_y
+        if bala_rect_scroll.colliderect(moto_rect):
+            puntos = max(0, puntos - 35)
+            bala.kill()
 
     # Dibujar ratas
     for rata in ratas:
@@ -415,14 +467,18 @@ while True:
     # Derrota inmediata si estabilidad <= 70
     if estabilidad <= 70:
         grupos_estado = {
-            "familias": estado_familias,
-            "soldados": estado_soldados,
-            "agricultores": estado_agricultores,
-            "ancianos": estado_ancianos,
-            "enfermos": estado_enfermos
+            "familias_1": estado_familias_1,
+            "familias_2": estado_familias_2,
+            "soldados_1": estado_soldados_1,
+            "soldados_2": estado_soldados_2,
+            "agricultores_1": estado_agricultores_1,
+            "agricultores_2": estado_agricultores_2,
+            "ancianos_1": estado_ancianos_1,
+            "ancianos_2": estado_ancianos_2,
+            "enfermos_1": estado_enfermos_1,
+            "enfermos_2": estado_enfermos_2,
         }
         mostrar_resultado(pantalla, puntos, estabilidad, grupos_estado)
-
 
 
     # Mostrar carta si está activa
@@ -431,15 +487,19 @@ while True:
     else:
         # Verificar final del juego
         if len(puntos_usados) == len(eventos_cartas) and not mostrar_carta:
-            grupos_estado = {
-                "familias": estado_familias,
-                "soldados": estado_soldados,
-                "agricultores": estado_agricultores,
-                "ancianos": estado_ancianos,
-                "enfermos": estado_enfermos
-            }
+           grupos_estado = {
+            "familias_1": estado_familias_1,
+            "familias_2": estado_familias_2,
+            "soldados_1": estado_soldados_1,
+            "soldados_2": estado_soldados_2,
+            "agricultores_1": estado_agricultores_1,
+            "agricultores_2": estado_agricultores_2,
+            "ancianos_1": estado_ancianos_1,
+            "ancianos_2": estado_ancianos_2,
+            "enfermos_1": estado_enfermos_1,
+            "enfermos_2": estado_enfermos_2,
+        }
 
-            mostrar_resultado(pantalla, puntos, estabilidad, grupos_estado)
     mouse_pos = pygame.mouse.get_pos()
 
     if flecha_rect.collidepoint(mouse_pos):
