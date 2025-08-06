@@ -36,7 +36,7 @@ class Ladron(pygame.sprite.Sprite):
         self.balas = None
         self.get_objetivo = objetivo
         self.tiempo_persecucion = 120
-        self.frecuencia_disparo = random.randint(60, 180)  # 1 a 3 segundos
+        self.frecuencia_disparo = random.randint(200, 300)  # 1 a 3 segundos
         self.disparo_cooldown = self.frecuencia_disparo
         try:
             self.sprites = [

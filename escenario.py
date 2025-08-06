@@ -27,7 +27,7 @@ CALLE_X_MIN = 300
 CALLE_X_MAX = 980
 
 # Ratas (solo dentro del rango de la calle)
-CANTIDAD_RATAS = 10
+CANTIDAD_RATAS = 6
 ratas = []
 for _ in range(CANTIDAD_RATAS):
     x = random.randint(CALLE_X_MIN, CALLE_X_MAX)
@@ -45,7 +45,7 @@ ladrones = pygame.sprite.Group()
 balas_ladron = pygame.sprite.Group()
 
 # Crear 4 ladrones en posiciones aleatorias del fondo:
-for i in range(4):
+for i in range(3):
     x = random.randint(300, 980)
     y = random.randint(800, 7000)
     ladron = Ladron(x, y, objetivo=lambda: moto_rect)  # función lambda
@@ -70,6 +70,11 @@ flecha_img = pygame.image.load("assets/flecha_atras.png").convert_alpha()
 flecha_img = pygame.transform.scale(flecha_img, (40, 40))  # tamaño real deseado
 flecha_rect = flecha_img.get_rect(topleft=(5, 5))  # posición arriba a la izquierda
 
+# Meta final
+meta_img = pygame.image.load("assets/escenario/meta.png").convert_alpha()
+meta_img = pygame.transform.scale(meta_img, (350, 270))  # Puedes ajustar tamaño
+meta_rect = meta_img.get_rect(topleft=(650, 30))       # Puedes mover la posición
+meta_mask = pygame.mask.from_surface(meta_img)
 
 # Velocidad
 velocidad = 10
@@ -169,7 +174,7 @@ boton_presionado = False
 puntos_usados = []
 punto_actual = None
 direccion_x_moto = 0
-
+grupos_atendidos = []
 
 # Estados de los grupos (10 grupos: 2 por cada tipo)
 estado_familias_1 = "vivo"
@@ -242,6 +247,67 @@ def dibujar_carta():
     else:
         pantalla.blit(btn_no, btn_no_rect)
 
+def marcar_grupos_no_atendidos():
+    if "familia1" not in grupos_atendidos:
+        globals()["estado_familias_1"] = "muerto"
+    if "familia2" not in grupos_atendidos:
+        globals()["estado_familias_2"] = "muerto"
+
+    if "soldado1" not in grupos_atendidos:
+        globals()["estado_soldados_1"] = "muerto"
+    if "soldado2" not in grupos_atendidos:
+        globals()["estado_soldados_2"] = "muerto"
+
+    if "agricultor1" not in grupos_atendidos:
+        globals()["estado_agricultores_1"] = "muerto"
+    if "agricultor2" not in grupos_atendidos:
+        globals()["estado_agricultores_2"] = "muerto"
+
+    if "anciano1" not in grupos_atendidos:
+        globals()["estado_ancianos_1"] = "muerto"
+    if "anciano2" not in grupos_atendidos:
+        globals()["estado_ancianos_2"] = "muerto"
+
+    if "enfermo1" not in grupos_atendidos:
+        globals()["estado_enfermos_1"] = "muerto"
+    if "enfermo2" not in grupos_atendidos:
+        globals()["estado_enfermos_2"] = "muerto"
+
+def reiniciar_juego():
+    global mostrar_carta, texto_actual, puntos, estabilidad, boton_presionado
+    global puntos_usados, punto_actual, direccion_x_moto, grupos_atendidos
+    global estado_familias_1, estado_familias_2
+    global estado_soldados_1, estado_soldados_2
+    global estado_agricultores_1, estado_agricultores_2
+    global estado_ancianos_1, estado_ancianos_2
+    global estado_enfermos_1, estado_enfermos_2
+    global moto_rect, scroll_y
+
+    mostrar_carta = False
+    texto_actual = ""
+    puntos = 0
+    estabilidad = 100
+    boton_presionado = False
+    puntos_usados = []
+    punto_actual = None
+    direccion_x_moto = 0
+    grupos_atendidos = []
+
+    estado_familias_1 = "vivo"
+    estado_familias_2 = "vivo"
+    estado_soldados_1 = "vivo"
+    estado_soldados_2 = "vivo"
+    estado_agricultores_1 = "vivo"
+    estado_agricultores_2 = "vivo"
+    estado_ancianos_1 = "vivo"
+    estado_ancianos_2 = "vivo"
+    estado_enfermos_1 = "vivo"
+    estado_enfermos_2 = "vivo"
+
+    # Reiniciar posición de la moto
+    moto_rect.topleft = (600, FONDO_ALTO - moto_img.get_height() - 50)
+    scroll_y = 0
+
 # =========================
 # LOOP PRINCIPAL
 # =========================
@@ -255,7 +321,7 @@ def mostrar_menu():
     boton_hover = pygame.transform.smoothscale(boton_jugar, (210, 90))
     boton_rect = boton_jugar.get_rect(center=(VENTANA_ANCHO - 150, VENTANA_ALTO - 60))
     titulo_img = pygame.image.load("assets/titulo.png").convert_alpha()
-    titulo_img = pygame.transform.smoothscale(titulo_img, (750, 445))
+    titulo_img = pygame.transform.smoothscale(titulo_img, (800, 460))
     titulo_rect = titulo_img.get_rect(center=(VENTANA_ANCHO // 2 + 50, 140))
 
     pygame.mixer.music.load("assets/musica_menu.mp3")
@@ -283,6 +349,7 @@ def mostrar_menu():
                 if boton_rect.collidepoint(event.pos):
                     pygame.mixer.music.stop()
                     pygame.mixer.music.play(-1, start=31.0)
+                    reiniciar_juego()
                     en_menu = False
 
         pygame.display.flip()
@@ -349,6 +416,37 @@ while True:
         # Clic en botones (con bloqueo tras primer clic)
         if mostrar_carta and not boton_presionado and event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
             if btn_aceptar_rect.collidepoint(event.pos):
+                # Registrar grupo como atendido
+                if "familia" in texto_actual.lower():
+                    if estado_familias_1 == "vivo":
+                        grupos_atendidos.append("familia1")
+                    else:
+                        grupos_atendidos.append("familia2")
+
+                elif "soldado" in texto_actual.lower():
+                    if estado_soldados_1 == "vivo":
+                        grupos_atendidos.append("soldado1")
+                    else:
+                        grupos_atendidos.append("soldado2")
+
+                elif "agricultor" in texto_actual.lower():
+                    if estado_agricultores_1 == "vivo":
+                        grupos_atendidos.append("agricultor1")
+                    else:
+                        grupos_atendidos.append("agricultor2")
+
+                elif "anciano" in texto_actual.lower():
+                    if estado_ancianos_1 == "vivo":
+                        grupos_atendidos.append("anciano1")
+                    else:
+                        grupos_atendidos.append("anciano2")
+
+                elif "enfermo" in texto_actual.lower():
+                    if estado_enfermos_1 == "vivo":
+                        grupos_atendidos.append("enfermo1")
+                    else:
+                        grupos_atendidos.append("enfermo2")
+
                 puntos = min(puntos + 100, 500)
 
                 # Ya no se otorgan bonus por grupo
@@ -360,6 +458,37 @@ while True:
                 punto_actual = None
 
             elif btn_no_rect.collidepoint(event.pos):
+                # Registrar grupo como atendido
+                if "familia" in texto_actual.lower():
+                    if estado_familias_1 == "vivo":
+                        grupos_atendidos.append("familia1")
+                    else:
+                        grupos_atendidos.append("familia2")
+
+                elif "soldado" in texto_actual.lower():
+                    if estado_soldados_1 == "vivo":
+                        grupos_atendidos.append("soldado1")
+                    else:
+                        grupos_atendidos.append("soldado2")
+
+                elif "agricultor" in texto_actual.lower():
+                    if estado_agricultores_1 == "vivo":
+                        grupos_atendidos.append("agricultor1")
+                    else:
+                        grupos_atendidos.append("agricultor2")
+
+                elif "anciano" in texto_actual.lower():
+                    if estado_ancianos_1 == "vivo":
+                        grupos_atendidos.append("anciano1")
+                    else:
+                        grupos_atendidos.append("anciano2")
+
+                elif "enfermo" in texto_actual.lower():
+                    if estado_enfermos_1 == "vivo":
+                        grupos_atendidos.append("enfermo1")
+                    else:
+                        grupos_atendidos.append("enfermo2")
+
                 # Penalización fija para todos los grupos
                 puntos = max(puntos - 20, 0)
                 estabilidad = max(estabilidad - 5, 0)
@@ -423,8 +552,7 @@ while True:
         if nueva_pos.left < CALLE_X_MIN or nueva_pos.right > CALLE_X_MAX:
             direccion_x_moto *= -1
             nueva_pos.x += direccion_x_moto * velocidad 
-        
-        nueva_pos.y = max(0, min(nueva_pos.y, FONDO_ALTO - moto_img.get_height()))
+            nueva_pos.y = max(0, min(nueva_pos.y, FONDO_ALTO - moto_img.get_height()))
 
         colision = False
         for obj_img, obj_rect, obj_mask in objetos:
@@ -443,7 +571,7 @@ while True:
                     offset = (moto_rect.x - rata.rect.x, moto_rect.y - rata.rect.y)
                     if rata.mask.overlap(moto_mask, offset):
                         rata.ya_colisiono = True
-                        estabilidad = max(0, estabilidad - 15)
+                        estabilidad = max(0, estabilidad - 10)
 
         # Verificar si la moto está cerca de un punto NO USADO
         for evento in eventos_cartas:
@@ -473,6 +601,18 @@ while True:
     for obj_img, obj_rect, _ in objetos:
         pantalla.blit(obj_img, (obj_rect.x, obj_rect.y - scroll_y))
 
+    # Mostrar la meta (con zoom si la moto la está tocando)
+    meta_pos_en_pantalla = (meta_rect.x, meta_rect.y - scroll_y)
+    offset_meta = (moto_rect.x - meta_rect.x, moto_rect.y - meta_rect.y)
+    colision_meta = meta_mask.overlap(moto_mask, offset_meta)
+
+    if colision_meta:
+        meta_zoom = pygame.transform.scale_by(meta_img, 1.2)
+        zoom_rect = meta_zoom.get_rect(center=(meta_rect.x + meta_rect.width // 2, meta_rect.y - scroll_y + meta_rect.height // 2))
+        pantalla.blit(meta_zoom, zoom_rect.topleft)
+    else:
+        pantalla.blit(meta_img, meta_pos_en_pantalla)
+
     # Dibujar puntos flotantes
     for evento in eventos_cartas:
         punto = evento["pos"]
@@ -486,7 +626,7 @@ while True:
     pantalla.blit(moto_img, (moto_rect.x, moto_rect.y - scroll_y))
 
     # En el bucle principal:
-    if not mostrar_intro:
+    if not mostrar_intro and not mostrar_carta:
         ladrones.update()
         balas_ladron.update()
         for ladron in ladrones:
@@ -497,6 +637,8 @@ while True:
 
     # Detección de colisión con jugador
     for bala in list(balas_ladron):  # copia segura
+        if mostrar_intro or mostrar_carta:
+            continue
         bala_rect_scroll = bala.rect.copy()
         bala_rect_scroll.y -= scroll_y
 
@@ -504,7 +646,7 @@ while True:
         moto_rect_scroll.y -= scroll_y
 
         if bala_rect_scroll.colliderect(moto_rect_scroll):
-            puntos = max(0, puntos - 35)
+            puntos = max(0, puntos - 25)
             bala.kill()
 
     # Dibujar ratas solo dentro del rango de la calle
@@ -532,7 +674,8 @@ while True:
     pantalla.blit(texto_estabilidad, (1160, 35))
 
     # Derrota inmediata si estabilidad <= 70
-    if estabilidad <= 70:
+    if estabilidad <= 50:
+        marcar_grupos_no_atendidos()
         grupos_estado = {
             "familias_1": estado_familias_1,
             "familias_2": estado_familias_2,
@@ -545,27 +688,31 @@ while True:
             "enfermos_1": estado_enfermos_1,
             "enfermos_2": estado_enfermos_2,
         }
-        mostrar_resultado(pantalla, puntos, estabilidad, grupos_estado)
+        mostrar_resultado(pantalla, puntos, estabilidad, grupos_estado, mostrar_menu)
 
 
     # Mostrar carta si está activa
     if mostrar_carta:
         dibujar_carta()
     else:
-        # Verificar final del juego
-        if len(puntos_usados) == len(eventos_cartas) and not mostrar_carta:
-           grupos_estado = {
-            "familias_1": estado_familias_1,
-            "familias_2": estado_familias_2,
-            "soldados_1": estado_soldados_1,
-            "soldados_2": estado_soldados_2,
-            "agricultores_1": estado_agricultores_1,
-            "agricultores_2": estado_agricultores_2,
-            "ancianos_1": estado_ancianos_1,
-            "ancianos_2": estado_ancianos_2,
-            "enfermos_1": estado_enfermos_1,
-            "enfermos_2": estado_enfermos_2,
-        }
+        # Verificar si se atendieron todos los eventos y se toca la meta
+        if len(puntos_usados) == len(eventos_cartas):
+            offset_meta = (moto_rect.x - meta_rect.x, moto_rect.y - meta_rect.y)
+            if meta_mask.overlap(moto_mask, offset_meta):
+                marcar_grupos_no_atendidos()
+                grupos_estado = {
+                    "familias_1": estado_familias_1,
+                    "familias_2": estado_familias_2,
+                    "soldados_1": estado_soldados_1,
+                    "soldados_2": estado_soldados_2,
+                    "agricultores_1": estado_agricultores_1,
+                    "agricultores_2": estado_agricultores_2,
+                    "ancianos_1": estado_ancianos_1,
+                    "ancianos_2": estado_ancianos_2,
+                    "enfermos_1": estado_enfermos_1,
+                    "enfermos_2": estado_enfermos_2,
+                }
+                mostrar_resultado(pantalla, puntos, estabilidad, grupos_estado, mostrar_menu)
 
     mouse_pos = pygame.mouse.get_pos()
 
