@@ -22,13 +22,18 @@ pygame.display.set_caption("Escenario con moto y cartas")
 fondo = pygame.image.load("assets/escenario/background.png").convert()
 FONDO_ALTO = fondo.get_height()
 
-# Ratas
-CANTIDAD_RATAS = 10  # ← Podés cambiarlo
+# Rango horizontal donde se permite mostrar enemigos (la calle)
+CALLE_X_MIN = 300
+CALLE_X_MAX = 980
+
+# Ratas (solo dentro del rango de la calle)
+CANTIDAD_RATAS = 10
 ratas = []
 for _ in range(CANTIDAD_RATAS):
-    x = random.randint(100, VENTANA_ANCHO - 100)
+    x = random.randint(CALLE_X_MIN, CALLE_X_MAX)
     y = random.randint(500, FONDO_ALTO - 500)
     ratas.append(Rata(x, y))
+
 
 # Moto
 moto_img = pygame.image.load("assets/moto.png").convert_alpha()
@@ -40,10 +45,15 @@ ladrones = pygame.sprite.Group()
 balas_ladron = pygame.sprite.Group()
 
 # Crear 4 ladrones en posiciones aleatorias del fondo:
-for _ in range(4):
-    x = random.randint(100, 1180)
+for i in range(4):
+    x = random.randint(300, 980)
     y = random.randint(800, 7000)
     ladron = Ladron(x, y, objetivo=lambda: moto_rect)  # función lambda
+    if i < 2:
+        ladron.direccion_x = -1  # Izquierda
+    else:
+        ladron.direccion_x = 1   # Derecha
+
     ladron.balas = balas_ladron
     ladrones.add(ladron)
 
@@ -158,6 +168,7 @@ estabilidad = 100
 boton_presionado = False
 puntos_usados = []
 punto_actual = None
+direccion_x_moto = 0
 
 
 # Estados de los grupos (10 grupos: 2 por cada tipo)
@@ -279,8 +290,52 @@ def mostrar_menu():
 # Mostrar el menú antes de iniciar el juego
 mostrar_menu()
 
+# =========================
+# INTRODUCCIÓN AL JUEGO
+# =========================
+mostrar_intro = True
+texto_intro = (
+    "Eres el encargado de repartir comida durante una crisis humanitaria.\n"
+    "Cada grupo tiene necesidades diferentes, pero tus recursos son limitados.\n"
+    "Elige con sabiduría… tus decisiones afectarán vidas.\n\n"
+    "Presiona ENTER para comenzar."
+)
+
+def dibujar_intro():
+    ancho_intro = 1200
+    alto_intro = 400
+    x_intro = (VENTANA_ANCHO - ancho_intro) // 2
+    y_intro = 200
+
+    # Fondo oscuro translúcido
+    overlay = pygame.Surface((ancho_intro, alto_intro), pygame.SRCALPHA)
+    overlay.fill((0, 0, 0, 220))
+    pantalla.blit(overlay, (x_intro, y_intro))
+
+    # Fuente grande y en negrita
+    fuente_intro = pygame.font.SysFont("georgia", 30, bold=True)
+    lineas = texto_intro.split("\n")
+    y_texto = y_intro + 50
+
+    for linea in lineas:
+        # Sombra
+        sombra = fuente_intro.render(linea, True, (0, 0, 0))
+        rect_sombra = sombra.get_rect(center=(VENTANA_ANCHO // 2 + 2, y_texto + 2))
+        pantalla.blit(sombra, rect_sombra)
+
+        # Texto principal
+        texto_render = fuente_intro.render(linea, True, (255, 255, 255))
+        rect_texto = texto_render.get_rect(center=(VENTANA_ANCHO // 2, y_texto))
+        pantalla.blit(texto_render, rect_texto)
+
+        y_texto += 50
+
+
 while True:
     for event in pygame.event.get():
+        if mostrar_intro and event.type == pygame.KEYDOWN:
+            if event.key == pygame.K_RETURN:
+                mostrar_intro = False
 
         if event.type == pygame.QUIT:
             pygame.quit()
@@ -311,45 +366,45 @@ while True:
 
                 # Marcar como muerto el grupo correspondiente
                 # Marcar como muerto el grupo correspondiente (usa 2 vidas por tipo)
-            if "familia" in texto_actual.lower():
-                if estado_familias_1 == "vivo":
-                    estado_familias_1 = "muerto"
-                else:
-                    estado_familias_2 = "muerto"
+                if "familia" in texto_actual.lower():
+                    if estado_familias_1 == "vivo":
+                        estado_familias_1 = "muerto"
+                    else:
+                        estado_familias_2 = "muerto"
 
-            if "soldado" in texto_actual.lower():
-                if estado_soldados_1 == "vivo":
-                    estado_soldados_1 = "muerto"
-                else:
-                    estado_soldados_2 = "muerto"
+                if "soldado" in texto_actual.lower():
+                    if estado_soldados_1 == "vivo":
+                        estado_soldados_1 = "muerto"
+                    else:
+                        estado_soldados_2 = "muerto"
 
-            if "enfermo" in texto_actual.lower():
-                if estado_enfermos_1 == "vivo":
-                    estado_enfermos_1 = "muerto"
-                else:
-                    estado_enfermos_2 = "muerto"
+                if "enfermo" in texto_actual.lower():
+                    if estado_enfermos_1 == "vivo":
+                        estado_enfermos_1 = "muerto"
+                    else:
+                        estado_enfermos_2 = "muerto"
 
-            if "anciano" in texto_actual.lower():
-                if estado_ancianos_1 == "vivo":
-                    estado_ancianos_1 = "muerto"
-                else:
-                    estado_ancianos_2 = "muerto"
+                if "anciano" in texto_actual.lower():
+                    if estado_ancianos_1 == "vivo":
+                        estado_ancianos_1 = "muerto"
+                    else:
+                        estado_ancianos_2 = "muerto"
 
-            if "agricultor" in texto_actual.lower():
-                if estado_agricultores_1 == "vivo":
-                    estado_agricultores_1 = "muerto"
-                else:
-                    estado_agricultores_2 = "muerto"
+                if "agricultor" in texto_actual.lower():
+                    if estado_agricultores_1 == "vivo":
+                        estado_agricultores_1 = "muerto"
+                    else:
+                        estado_agricultores_2 = "muerto"
 
-                # Cerrar carta
-                mostrar_carta = False
-                boton_presionado = True
-                if punto_actual and punto_actual not in puntos_usados:
-                    puntos_usados.append(punto_actual)
-                punto_actual = None
+            # Cerrar carta
+            mostrar_carta = False
+            boton_presionado = True
+            if punto_actual and punto_actual not in puntos_usados:
+                puntos_usados.append(punto_actual)
+            punto_actual = None
 
     # Movimiento solo si no hay carta abierta
-    if not mostrar_carta:
+    if not mostrar_intro and not mostrar_carta:
         teclas = pygame.key.get_pressed()
         nueva_pos = moto_rect.copy()
 
@@ -358,11 +413,17 @@ while True:
         if teclas[pygame.K_s] or teclas[pygame.K_DOWN]:
             nueva_pos.y += velocidad
         if teclas[pygame.K_a] or teclas[pygame.K_LEFT]:
-            nueva_pos.x -= velocidad
-        if teclas[pygame.K_d] or teclas[pygame.K_RIGHT]:
-            nueva_pos.x += velocidad
+            direccion_x_moto = -1
+        elif teclas[pygame.K_d] or teclas[pygame.K_RIGHT]:
+            direccion_x_moto = 1
+        else:
+            direccion_x_moto = 0
+        nueva_pos.x += direccion_x_moto * velocidad
 
-        nueva_pos.x = max(0, min(nueva_pos.x, VENTANA_ANCHO - moto_img.get_width()))
+        if nueva_pos.left < CALLE_X_MIN or nueva_pos.right > CALLE_X_MAX:
+            direccion_x_moto *= -1
+            nueva_pos.x += direccion_x_moto * velocidad 
+        
         nueva_pos.y = max(0, min(nueva_pos.y, FONDO_ALTO - moto_img.get_height()))
 
         colision = False
@@ -376,12 +437,13 @@ while True:
             moto_rect = nueva_pos
 
         # Verificar colisión con ratas
-        for rata in ratas:
-            if not rata.ya_colisiono:
-                offset = (moto_rect.x - rata.rect.x, moto_rect.y - rata.rect.y)
-                if rata.mask.overlap(moto_mask, offset):
-                    rata.ya_colisiono = True
-                    estabilidad = max(0, estabilidad - 15)
+        if not mostrar_intro:
+            for rata in ratas:
+                if not rata.ya_colisiono:
+                    offset = (moto_rect.x - rata.rect.x, moto_rect.y - rata.rect.y)
+                    if rata.mask.overlap(moto_mask, offset):
+                        rata.ya_colisiono = True
+                        estabilidad = max(0, estabilidad - 15)
 
         # Verificar si la moto está cerca de un punto NO USADO
         for evento in eventos_cartas:
@@ -424,26 +486,31 @@ while True:
     pantalla.blit(moto_img, (moto_rect.x, moto_rect.y - scroll_y))
 
     # En el bucle principal:
-    ladrones.update()
-    balas_ladron.update()
-    for ladron in ladrones:
-        pantalla.blit(ladron.image, (ladron.rect.x, ladron.rect.y - scroll_y))
-    for bala in balas_ladron:
-        pantalla.blit(bala.image, (bala.rect.x, bala.rect.y - scroll_y))
+    if not mostrar_intro:
+        ladrones.update()
+        balas_ladron.update()
+        for ladron in ladrones:
+            pantalla.blit(ladron.image, (ladron.rect.x, ladron.rect.y - scroll_y))
+        for bala in balas_ladron:
+            if CALLE_X_MIN <= bala.rect.centerx <= CALLE_X_MAX:
+                pantalla.blit(bala.image, (bala.rect.x, bala.rect.y - scroll_y))
 
     # Detección de colisión con jugador
     for bala in list(balas_ladron):  # copia segura
         bala_rect_scroll = bala.rect.copy()
         bala_rect_scroll.y -= scroll_y
-        if bala_rect_scroll.colliderect(moto_rect):
+
+        moto_rect_scroll = moto_rect.copy()
+        moto_rect_scroll.y -= scroll_y
+
+        if bala_rect_scroll.colliderect(moto_rect_scroll):
             puntos = max(0, puntos - 35)
             bala.kill()
 
-    # Dibujar ratas
+    # Dibujar ratas solo dentro del rango de la calle
     for rata in ratas:
-        rata.actualizar(tiempo)
-        rata.dibujar(pantalla, scroll_y)
-
+            rata.actualizar(tiempo)
+            rata.dibujar(pantalla, scroll_y)
 
     # Mostrar puntos
     texto_puntos = fuente.render(f"Puntos: {puntos}", True, (255, 255, 255))
@@ -507,6 +574,9 @@ while True:
         pantalla.blit(flecha_zoom, (flecha_rect.x - 4, flecha_rect.y - 4))  # ajusta para que no se desplace raro
     else:
         pantalla.blit(flecha_img, flecha_rect)
+    
+    if mostrar_intro:
+        dibujar_intro()
 
     pygame.display.flip()
     tiempo += 0.05

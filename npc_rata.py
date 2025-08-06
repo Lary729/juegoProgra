@@ -40,8 +40,12 @@ class Rata:
         self.rect.y += int(self.direccion.y * self.velocidad)
 
         # Limitar para que no se salgan del mapa
-        self.rect.x = max(0, min(self.rect.x, 1280 - self.rect.width))
-        self.rect.y = max(0, min(self.rect.y, 8000 - self.rect.height))  # ← ajusta según alto del fondo
+        # Limitar horizontalmente a la calle (rebotar si se sale)
+        if self.rect.left < 300 or self.rect.right > 980:
+            self.direccion.x *= -1  # rebota
+
+        # Mantener límites verticales (como antes)
+        self.rect.y = max(0, min(self.rect.y, 8000 - self.rect.height))
 
     def dibujar(self, pantalla, scroll_y):
         pantalla.blit(self.sprites[self.sprite_actual], (self.rect.x, self.rect.y - scroll_y))
