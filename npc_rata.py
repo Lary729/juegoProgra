@@ -2,7 +2,7 @@ import pygame
 import random
 
 # Velocidad base (puede ser modificada desde escenario.py si se desea)
-VELOCIDAD_RATAS = 5
+VELOCIDAD_RATAS = 8
 
 class Rata:
     def __init__(self, x, y, velocidad=VELOCIDAD_RATAS):

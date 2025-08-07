@@ -187,6 +187,8 @@ estado_ancianos_1 = "vivo"
 estado_ancianos_2 = "vivo"
 estado_enfermos_1 = "vivo"
 estado_enfermos_2 = "vivo"
+
+
 # =========================
 # FUNCIONES
 # =========================
@@ -252,27 +254,22 @@ def marcar_grupos_no_atendidos():
         globals()["estado_familias_1"] = "muerto"
     if "familia2" not in grupos_atendidos:
         globals()["estado_familias_2"] = "muerto"
-
     if "soldado1" not in grupos_atendidos:
         globals()["estado_soldados_1"] = "muerto"
     if "soldado2" not in grupos_atendidos:
         globals()["estado_soldados_2"] = "muerto"
-
     if "agricultor1" not in grupos_atendidos:
         globals()["estado_agricultores_1"] = "muerto"
     if "agricultor2" not in grupos_atendidos:
         globals()["estado_agricultores_2"] = "muerto"
-
     if "anciano1" not in grupos_atendidos:
         globals()["estado_ancianos_1"] = "muerto"
     if "anciano2" not in grupos_atendidos:
         globals()["estado_ancianos_2"] = "muerto"
-
     if "enfermo1" not in grupos_atendidos:
         globals()["estado_enfermos_1"] = "muerto"
     if "enfermo2" not in grupos_atendidos:
         globals()["estado_enfermos_2"] = "muerto"
-
 def reiniciar_juego():
     global mostrar_carta, texto_actual, puntos, estabilidad, boton_presionado
     global puntos_usados, punto_actual, direccion_x_moto, grupos_atendidos
@@ -414,123 +411,43 @@ while True:
                 break  # salir del juego y volver al menú
 
         # Clic en botones (con bloqueo tras primer clic)
+        # Clic en botones (con bloqueo tras primer clic)
         if mostrar_carta and not boton_presionado and event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
+            alimentado = False  # Por defecto no está alimentado
+
             if btn_aceptar_rect.collidepoint(event.pos):
-                # Registrar grupo como atendido
-                if "familia" in texto_actual.lower():
-                    if estado_familias_1 == "vivo":
-                        grupos_atendidos.append("familia1")
-                    else:
-                        grupos_atendidos.append("familia2")
-
-                elif "soldado" in texto_actual.lower():
-                    if estado_soldados_1 == "vivo":
-                        grupos_atendidos.append("soldado1")
-                    else:
-                        grupos_atendidos.append("soldado2")
-
-                elif "agricultor" in texto_actual.lower():
-                    if estado_agricultores_1 == "vivo":
-                        grupos_atendidos.append("agricultor1")
-                    else:
-                        grupos_atendidos.append("agricultor2")
-
-                elif "anciano" in texto_actual.lower():
-                    if estado_ancianos_1 == "vivo":
-                        grupos_atendidos.append("anciano1")
-                    else:
-                        grupos_atendidos.append("anciano2")
-
-                elif "enfermo" in texto_actual.lower():
-                    if estado_enfermos_1 == "vivo":
-                        grupos_atendidos.append("enfermo1")
-                    else:
-                        grupos_atendidos.append("enfermo2")
-
+                alimentado = True
                 puntos = min(puntos + 100, 500)
 
-                # Ya no se otorgan bonus por grupo
+            elif btn_no_rect.collidepoint(event.pos):
+                puntos = max(puntos - 20, 0)
+                estabilidad = max(estabilidad - 5, 0)
+
+            if alimentado or btn_no_rect.collidepoint(event.pos):
+                grupo_detectado = ""
+
+                if "familia" in texto_actual.lower():
+                    grupo_detectado = "familia1" if "familia1" not in grupos_atendidos else "familia2"
+                elif "soldado" in texto_actual.lower():
+                    grupo_detectado = "soldado1" if "soldado1" not in grupos_atendidos else "soldado2"
+                elif "agricultor" in texto_actual.lower():
+                    grupo_detectado = "agricultor1" if "agricultor1" not in grupos_atendidos else "agricultor2"
+                elif "anciano" in texto_actual.lower():
+                    grupo_detectado = "anciano1" if "anciano1" not in grupos_atendidos else "anciano2"
+                elif "enfermo" in texto_actual.lower():
+                    grupo_detectado = "enfermo1" if "enfermo1" not in grupos_atendidos else "enfermo2"
+
+                if grupo_detectado:
+                    if alimentado:
+                        grupos_atendidos.append(grupo_detectado)
+                    else:
+                        globals()[f"estado_{grupo_detectado}"] = "muerto"
 
                 mostrar_carta = False
                 boton_presionado = True
                 if punto_actual and punto_actual not in puntos_usados:
                     puntos_usados.append(punto_actual)
                 punto_actual = None
-
-            elif btn_no_rect.collidepoint(event.pos):
-                # Registrar grupo como atendido
-                if "familia" in texto_actual.lower():
-                    if estado_familias_1 == "vivo":
-                        grupos_atendidos.append("familia1")
-                    else:
-                        grupos_atendidos.append("familia2")
-
-                elif "soldado" in texto_actual.lower():
-                    if estado_soldados_1 == "vivo":
-                        grupos_atendidos.append("soldado1")
-                    else:
-                        grupos_atendidos.append("soldado2")
-
-                elif "agricultor" in texto_actual.lower():
-                    if estado_agricultores_1 == "vivo":
-                        grupos_atendidos.append("agricultor1")
-                    else:
-                        grupos_atendidos.append("agricultor2")
-
-                elif "anciano" in texto_actual.lower():
-                    if estado_ancianos_1 == "vivo":
-                        grupos_atendidos.append("anciano1")
-                    else:
-                        grupos_atendidos.append("anciano2")
-
-                elif "enfermo" in texto_actual.lower():
-                    if estado_enfermos_1 == "vivo":
-                        grupos_atendidos.append("enfermo1")
-                    else:
-                        grupos_atendidos.append("enfermo2")
-
-                # Penalización fija para todos los grupos
-                puntos = max(puntos - 20, 0)
-                estabilidad = max(estabilidad - 5, 0)
-
-                # Marcar como muerto el grupo correspondiente
-                # Marcar como muerto el grupo correspondiente (usa 2 vidas por tipo)
-                if "familia" in texto_actual.lower():
-                    if estado_familias_1 == "vivo":
-                        estado_familias_1 = "muerto"
-                    else:
-                        estado_familias_2 = "muerto"
-
-                if "soldado" in texto_actual.lower():
-                    if estado_soldados_1 == "vivo":
-                        estado_soldados_1 = "muerto"
-                    else:
-                        estado_soldados_2 = "muerto"
-
-                if "enfermo" in texto_actual.lower():
-                    if estado_enfermos_1 == "vivo":
-                        estado_enfermos_1 = "muerto"
-                    else:
-                        estado_enfermos_2 = "muerto"
-
-                if "anciano" in texto_actual.lower():
-                    if estado_ancianos_1 == "vivo":
-                        estado_ancianos_1 = "muerto"
-                    else:
-                        estado_ancianos_2 = "muerto"
-
-                if "agricultor" in texto_actual.lower():
-                    if estado_agricultores_1 == "vivo":
-                        estado_agricultores_1 = "muerto"
-                    else:
-                        estado_agricultores_2 = "muerto"
-
-            # Cerrar carta
-            mostrar_carta = False
-            boton_presionado = True
-            if punto_actual and punto_actual not in puntos_usados:
-                puntos_usados.append(punto_actual)
-            punto_actual = None
 
     # Movimiento solo si no hay carta abierta
     if not mostrar_intro and not mostrar_carta:

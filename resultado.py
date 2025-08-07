@@ -14,8 +14,8 @@ def mostrar_resultado(pantalla, puntos, estabilidad, grupos_estado, volver_al_me
 
     grupos_vivos = sum(1 for estado in grupos_estado.values() if estado == "vivo")
     soldados_rebeldes = grupos_estado.get("soldados_1") == "muerto" or grupos_estado.get("soldados_2") == "muerto"
-    derrota = (grupos_vivos <= 2 or estabilidad <= 70 or soldados_rebeldes)
-    victoria = not derrota and estabilidad >= 71
+    derrota = (grupos_vivos <= 3 or estabilidad <= 50 or puntos < 300)
+    victoria = not derrota 
 
     resultado_activo = True
     while resultado_activo:
