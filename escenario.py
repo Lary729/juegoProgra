@@ -72,8 +72,8 @@ flecha_rect = flecha_img.get_rect(topleft=(5, 5))  # posición arriba a la izqui
 
 # Meta final
 meta_img = pygame.image.load("assets/escenario/meta.png").convert_alpha()
-meta_img = pygame.transform.scale(meta_img, (350, 270))  # Puedes ajustar tamaño
-meta_rect = meta_img.get_rect(topleft=(650, 30))       # Puedes mover la posición
+meta_img = pygame.transform.scale(meta_img, (420, 178))  # Puedes ajustar tamaño
+meta_rect = meta_img.get_rect(topleft=(620, 0))       # Puedes mover la posición
 meta_mask = pygame.mask.from_surface(meta_img)
 
 # Velocidad
@@ -606,12 +606,8 @@ while True:
     offset_meta = (moto_rect.x - meta_rect.x, moto_rect.y - meta_rect.y)
     colision_meta = meta_mask.overlap(moto_mask, offset_meta)
 
-    if colision_meta:
-        meta_zoom = pygame.transform.scale_by(meta_img, 1.2)
-        zoom_rect = meta_zoom.get_rect(center=(meta_rect.x + meta_rect.width // 2, meta_rect.y - scroll_y + meta_rect.height // 2))
-        pantalla.blit(meta_zoom, zoom_rect.topleft)
-    else:
-        pantalla.blit(meta_img, meta_pos_en_pantalla)
+    meta_pos_en_pantalla = (meta_rect.x, meta_rect.y - scroll_y)
+    pantalla.blit(meta_img, meta_pos_en_pantalla)
 
     # Dibujar puntos flotantes
     for evento in eventos_cartas:
@@ -695,25 +691,23 @@ while True:
     if mostrar_carta:
         dibujar_carta()
     else:
-        # Verificar si se atendieron todos los eventos y se toca la meta
-        if len(puntos_usados) == len(eventos_cartas):
-            offset_meta = (moto_rect.x - meta_rect.x, moto_rect.y - meta_rect.y)
-            if meta_mask.overlap(moto_mask, offset_meta):
-                marcar_grupos_no_atendidos()
-                grupos_estado = {
-                    "familias_1": estado_familias_1,
-                    "familias_2": estado_familias_2,
-                    "soldados_1": estado_soldados_1,
-                    "soldados_2": estado_soldados_2,
-                    "agricultores_1": estado_agricultores_1,
-                    "agricultores_2": estado_agricultores_2,
-                    "ancianos_1": estado_ancianos_1,
-                    "ancianos_2": estado_ancianos_2,
-                    "enfermos_1": estado_enfermos_1,
-                    "enfermos_2": estado_enfermos_2,
-                }
-                mostrar_resultado(pantalla, puntos, estabilidad, grupos_estado, mostrar_menu)
-
+       # Si la moto toca la meta, vamos directamente al resultado
+       offset_meta = (moto_rect.x - meta_rect.x, moto_rect.y - meta_rect.y)
+       if meta_mask.overlap(moto_mask, offset_meta):
+           marcar_grupos_no_atendidos()
+           grupos_estado = {
+               "familias_1": estado_familias_1,
+               "familias_2": estado_familias_2,
+               "soldados_1": estado_soldados_1,
+              "soldados_2": estado_soldados_2,
+               "agricultores_1": estado_agricultores_1,
+               "agricultores_2": estado_agricultores_2,
+               "ancianos_1": estado_ancianos_1,
+               "ancianos_2": estado_ancianos_2,
+               "enfermos_1": estado_enfermos_1,
+               "enfermos_2": estado_enfermos_2,
+          }
+           mostrar_resultado(pantalla, puntos, estabilidad, grupos_estado, mostrar_menu)
     mouse_pos = pygame.mouse.get_pos()
 
     if flecha_rect.collidepoint(mouse_pos):
